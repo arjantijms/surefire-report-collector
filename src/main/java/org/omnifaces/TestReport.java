@@ -34,69 +34,46 @@ public class TestReport {
 		List<TestResult> testResults = new ArrayList<>();
 
 		walk(get(rootPath))
+			.filter(path -> fileName(path).startsWith("TEST") && fileName(path).endsWith(".xml") && parentEndsWith(path, "target/surefire-reports"))
+			.forEach(
+				path -> {
+					Element root = document(path).getDocumentElement();
 
-				.filter(path -> fileName(path).startsWith("TEST") && fileName(path).endsWith(".xml")
-						&& parentEndsWith(path, "target/surefire-reports"))
+					if (root.getNodeName().equals("testsuite")) {
 
-				.forEach(
+						forEachElement(root.getElementsByTagName("testcase"),
+							element -> {
 
-						path -> {
+								TestResult testResult = new TestResult();
+								testResult.setModule(fileName(path.getParent().getParent().getParent()));
+								testResult.setTestMethod(element.getAttribute("name"));
+								testResult.setTestClass(element.getAttribute("classname"));
 
-							Element root = document(path).getDocumentElement();
-
-							if (root.getNodeName().equals("testsuite")) {
-
-								forEachElement(root.getElementsByTagName("testcase"),
-
-										element -> {
-
-									TestResult testResult = new TestResult();
-
-									testResult.setModule(fileName(path.getParent().getParent().getParent()));
-
-									testResult.setTestMethod(element.getAttribute("name"));
-
-									testResult.setTestClass(element.getAttribute("classname"));
-
-									forEachElement(element.getElementsByTagName("failure"),
-
-											failureElement -> {
-
+								forEachElement(element.getElementsByTagName("failure"),
+									failureElement -> {
 										testResult.setFailure(true);
-
 										testResult.setFailureReason(failureElement.getAttribute("message"));
-
 										return;
-
 									}
+								);
 
-					);
+								testResults.add(testResult);
 
-									testResults.add(testResult);
+								return;
+						});
+					}
 
-									return;
-
-								}
-
-				);
-
-							}
-
-							return;
-
-						}
-
+					return;
+				}
 		);
 
 		for (TestResult testResult : testResults) {
-
 			out.format("%s %s %s %s \n",
-					testResult.getModule(),
-					testResult.getTestMethod(),
-					testResult.isFailure() ? "Failure:" : "Passed",
-					testResult.getFailureReason()
+				testResult.getModule(),
+				testResult.getTestMethod(),
+				testResult.isFailure() ? "Failure:" : "Passed",
+				testResult.getFailureReason()
 			);
-
 		}
 
 		out.println("\n\n");
@@ -108,39 +85,37 @@ public class TestReport {
 		for (TestResult testResult : testResults) {
 
 			String moduleUrl = String.format("%s%s",
-					baseUrl,
-					testResult.getModule()
+				baseUrl,
+				testResult.getModule()
 			);
 
 			String classUrl = String.format("%s%s%s%s",
-					moduleUrl,
-					testPath,
-					testResult.getTestClass().replace('.', '/'),
-					extension
+				moduleUrl,
+				testPath,
+				testResult.getTestClass().replace('.', '/'),
+				extension
 
 			);
 
 			String moduleAnchorTag = String.format("<a href=\"%s\">%s</a>",
-					moduleUrl,
-					testResult.getModule()
+				moduleUrl,
+				testResult.getModule()
 			);
 
 			String testAnchorTag = String.format("<a href=\"%s\">%s</a>",
-					classUrl,
-					testResult.getTestMethod()
+				classUrl,
+				testResult.getTestMethod()
 			);
 
 			out.format("<tr>\n <td>%s</td> <td>%s</td>\n <td bgcolor=\"%s\"><div tooltip=\"%s\">%s</div></td>\n<tr>\n",
-					moduleAnchorTag,
-					testAnchorTag,
-					testResult.isFailure() ? "red" : "green",
-					testResult.getFailureReason(),
-					testResult.isFailure() ? "Failure" : "Passed"
+				moduleAnchorTag,
+				testAnchorTag,
+				testResult.isFailure() ? "red" : "green",
+				testResult.getFailureReason(),
+				testResult.isFailure() ? "Failure" : "Passed"
 
 			);
-
 		}
-
 	}
 
 	public static String fileName(Path path) {
@@ -225,7 +200,6 @@ public class TestReport {
 		public void setFailureReason(String failureReason) {
 			this.failureReason = failureReason;
 		}
-
 	}
 
 }
