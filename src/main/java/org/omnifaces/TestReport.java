@@ -110,7 +110,7 @@ public class TestReport {
 			out.format("<tr>\n <td>%s</td> <td>%s</td>\n <td bgcolor=\"%s\"><div tooltip=\"%s\">%s</div></td>\n<tr>\n",
 				moduleAnchorTag,
 				testAnchorTag,
-				testResult.isFailure() ? "red" : "green",
+				testResult.isFailure() ? "LightCoral" : "lightgreen",
 				testResult.getFailureReason(),
 				testResult.isFailure() ? "Failure" : "Passed"
 
