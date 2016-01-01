@@ -4,6 +4,7 @@ import static java.lang.System.out;
 import static java.nio.file.Files.newInputStream;
 import static java.nio.file.Files.walk;
 import static java.nio.file.Paths.get;
+import static javax.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT;
 import static org.w3c.dom.Node.ELEMENT_NODE;
 
 import java.io.IOException;
@@ -12,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -21,15 +25,23 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-public class TestReport {
+public class CreateReport {
 
 	private static final DocumentBuilder documentBuilder = createDocumentBuilder();
 
 	public static void main(String[] args) throws IOException {
 
 		String rootPath = args != null && args.length > 0 ? args[0] : ".";
+		String outputPath = args != null && args.length > 1 ? args[1] : "./test-results.xml";
+		
+		if (!outputPath.endsWith(".xml")) {
+		    outputPath += ".xml";
+		}
+		
+		String testName = args != null && args.length > 2 ? args[2] : "";
 
 		out.println("Scanning from " + rootPath + " = " + get(rootPath).toAbsolutePath().toRealPath() + "\n");
+		out.println("Saving to " + outputPath + " = " + get(outputPath).toAbsolutePath().toFile().getCanonicalPath() + "\n");
 
 		List<TestResult> testResults = new ArrayList<>();
 
@@ -76,46 +88,19 @@ public class TestReport {
 			);
 		}
 
-		out.println("\n\n");
+        try {
 
-		String baseUrl = "https://github.com/javaee-samples/javaee7-samples/blob/master/jaspic/";
-		String testPath = "/src/test/java/";
-		String extension = ".java";
+            JAXBContext jaxbContext = JAXBContext.newInstance(TestResults.class, TestResult.class);
+            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
 
-		for (TestResult testResult : testResults) {
+            jaxbMarshaller.setProperty(JAXB_FORMATTED_OUTPUT, true);
 
-			String moduleUrl = String.format("%s%s",
-				baseUrl,
-				testResult.getModule()
-			);
+            jaxbMarshaller.marshal(new TestResults(testName, testResults), get(outputPath).toFile());
 
-			String classUrl = String.format("%s%s%s%s",
-				moduleUrl,
-				testPath,
-				testResult.getTestClass().replace('.', '/'),
-				extension
+        } catch (JAXBException e) {
+            e.printStackTrace();
+        }
 
-			);
-
-			String moduleAnchorTag = String.format("<a href=\"%s\">%s</a>",
-				moduleUrl,
-				testResult.getModule()
-			);
-
-			String testAnchorTag = String.format("<a href=\"%s\">%s</a>",
-				classUrl,
-				testResult.getTestMethod()
-			);
-
-			out.format("<tr>\n <td>%s</td> <td>%s</td>\n <td bgcolor=\"%s\"><div tooltip=\"%s\">%s</div></td>\n<tr>\n",
-				moduleAnchorTag,
-				testAnchorTag,
-				testResult.isFailure() ? "LightCoral" : "lightgreen",
-				testResult.getFailureReason(),
-				testResult.isFailure() ? "Failure" : "Passed"
-
-			);
-		}
 	}
 
 	public static String fileName(Path path) {
@@ -153,53 +138,6 @@ public class TestReport {
 		}
 	}
 
-	private static class TestResult {
 
-		private String module;
-		private String testMethod;
-		private String testClass;
-		private boolean failure;
-		private String failureReason = "";
-
-		public String getModule() {
-			return module;
-		}
-
-		public void setModule(String module) {
-			this.module = module;
-		}
-
-		public String getTestMethod() {
-			return testMethod;
-		}
-
-		public void setTestMethod(String testMethod) {
-			this.testMethod = testMethod;
-		}
-
-		public String getTestClass() {
-			return testClass;
-		}
-
-		public void setTestClass(String testClass) {
-			this.testClass = testClass;
-		}
-
-		public boolean isFailure() {
-			return failure;
-		}
-
-		public void setFailure(boolean failure) {
-			this.failure = failure;
-		}
-
-		public String getFailureReason() {
-			return failureReason;
-		}
-
-		public void setFailureReason(String failureReason) {
-			this.failureReason = failureReason;
-		}
-	}
 
 }
