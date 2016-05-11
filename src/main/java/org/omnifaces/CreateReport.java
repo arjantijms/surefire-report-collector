@@ -33,6 +33,7 @@ public class CreateReport {
 
 		String rootPath = args != null && args.length > 0 ? args[0] : ".";
 		String outputPath = args != null && args.length > 1 ? args[1] : "./test-results.xml";
+		boolean clean = outputPath.equals("-clean");
 		
 		if (!outputPath.endsWith(".xml")) {
 		    outputPath += ".xml";
@@ -41,7 +42,11 @@ public class CreateReport {
 		String testName = args != null && args.length > 2 ? args[2] : "";
 
 		out.println("Scanning from " + rootPath + " = " + get(rootPath).toAbsolutePath().toRealPath() + "\n");
-		out.println("Saving to " + outputPath + " = " + get(outputPath).toAbsolutePath().toFile().getCanonicalPath() + "\n");
+		if (clean) {
+		    out.println("Cleaning up surefire test reports\n");
+		} else {
+		    out.println("Saving to " + outputPath + " = " + get(outputPath).toAbsolutePath().toFile().getCanonicalPath() + "\n");
+		}
 
 		List<TestResult> testResults = new ArrayList<>();
 
@@ -52,6 +57,13 @@ public class CreateReport {
 					Element root = document(path).getDocumentElement();
 
 					if (root.getNodeName().equals("testsuite")) {
+					    
+					    if (clean) {
+					        out.println("Deleting " + path);
+					        path.toFile().delete();
+					        
+					        return;
+					    }
 
 						forEachElement(root.getElementsByTagName("testcase"),
 							element -> {
@@ -78,6 +90,11 @@ public class CreateReport {
 					return;
 				}
 		);
+		
+		if (clean) {
+		    out.println("Done\n");
+		    return;
+		}
 
 		for (TestResult testResult : testResults) {
 			out.format("%s %s %s %s \n",
